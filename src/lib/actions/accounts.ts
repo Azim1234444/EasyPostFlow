@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { TikTokClient } from '@/lib/platforms/tiktok/client';
 import { encryptToken, decryptToken } from '@/lib/crypto/encryption';
 import type { PlatformAccount } from '@/types/database';
@@ -130,7 +131,8 @@ export async function refreshAccountToken(accountId: string): Promise<ActionResp
     const encryptedRefreshToken = encryptToken(newTokens.refresh_token);
     const expiresAt = new Date(Date.now() + newTokens.expires_in * 1000).toISOString();
 
-    const { error: updateError } = await supabase
+    const adminSupabase = createAdminClient();
+    const { error: updateError } = await adminSupabase
       .from('platform_accounts')
       .update({
         access_token_encrypted: encryptedAccessToken,
@@ -138,7 +140,8 @@ export async function refreshAccountToken(accountId: string): Promise<ActionResp
         token_expires_at: expiresAt,
         status: 'connected',
       })
-      .eq('id', accountId);
+      .eq('id', accountId)
+      .eq('user_id', user.id);
 
     if (updateError) {
       throw new Error(`Failed to persist refreshed tokens: ${updateError.message}`);
@@ -195,7 +198,8 @@ export async function connectShopeeAccount(
       app_id: input.appId || null,
     };
 
-    const { data, error } = await supabase
+    const adminSupabase = createAdminClient();
+    const { data, error } = await adminSupabase
       .from('platform_accounts')
       .upsert(
         {

@@ -513,3 +513,26 @@ CREATE POLICY "Users can delete own thumbnails"
     bucket_id = 'thumbnails' AND
     (storage.foldername(name))[1] = (SELECT auth.uid())::text
   );
+
+-- ============================================================
+-- Explicit Table & Schema Privileges
+-- Ensures the 'authenticated' and 'service_role' roles have table
+-- access while Row Level Security (RLS) strictly filters rows.
+-- ============================================================
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.platform_accounts TO authenticated;
+GRANT ALL ON TABLE public.platform_accounts TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON TABLES TO service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON SEQUENCES TO service_role;
+

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { TikTokClient } from '@/lib/platforms/tiktok/client';
 import { encryptToken } from '@/lib/crypto/encryption';
 import { diagnoseStageFailure } from '@/lib/diagnostics/integration';
@@ -78,8 +79,10 @@ export async function GET(request: NextRequest) {
     const encryptedRefreshToken = encryptToken(tokens.refresh_token);
     const tokenExpiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
-    // 7. Upsert into public.platform_accounts
-    const { error: dbError } = await supabase.from('platform_accounts').upsert(
+    // 7. Upsert into public.platform_accounts using trusted server-only admin client
+    // Resolves authenticated user strictly from server session (user.id above), preventing client forgery
+    const adminSupabase = createAdminClient();
+    const { error: dbError } = await adminSupabase.from('platform_accounts').upsert(
       {
         user_id: user.id,
         platform: 'tiktok',
